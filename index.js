@@ -14,6 +14,19 @@ app.use(cors());
 const client = new MongoClient(`mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.vyu58ag.mongodb.net/`);
 
 
+
+export async function connectToMongoDB() {
+  try {
+    await client.connect();
+    console.log("You successfully connected to MongoDB!");
+    return client;
+  } catch (err) {
+    console.dir(err);
+  }
+}
+
+
+
 app.get('/', (req, res) => {
   res.send('Hello World!');
 });
