@@ -25,6 +25,8 @@ export async function connectToMongoDB() {
   }
 }
 
+const connectedClient = await connectToMongoDB ();
+
 
 
 app.get('/', (req, res) => {
