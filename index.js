@@ -1,3 +1,4 @@
+
 // import "dotenv/config";
 
 // import express from "express";
@@ -12,13 +13,25 @@
 // app.use(cors());
 
 // // MongoDB connection
-// const client = new MongoClient(
-//   `mongodb+srv://${encodeURIComponent(process.env.DB_USER)}:${encodeURIComponent(process.env.DB_PASSWORD)}@cluster0.vyu58ag.mongodb.net/`
-// );
+// const dbUser = process.env.DB_USER;
+// const dbPassword = process.env.DB_PASSWORD;
+
+// if (!dbUser || !dbPassword) {
+//   throw new Error("DB_USER or DB_PASSWORD is missing from .env");
+// }
+
+// const mongoURI = `mongodb+srv://${encodeURIComponent(
+//   dbUser
+// )}:${encodeURIComponent(
+//   dbPassword
+// )}@cluster0.vyu58ag.mongodb.net/?retryWrites=true&w=majority`;
+
+// const client = new MongoClient(mongoURI);
 
 // let database;
 // let users;
 // let tuitions;
+// let applications;
 
 // // Connect to MongoDB
 // async function connectToMongoDB() {
@@ -29,8 +42,26 @@
 
 //     database = client.db("mentorlagbe");
 
+//     // Collections
 //     users = database.collection("user");
 //     tuitions = database.collection("tuitions");
+//     applications = database.collection("applications");
+
+//     // Create unique index to prevent duplicate applications
+//     await applications.createIndex(
+//       {
+//         tuitionId: 1,
+//         studentId: 1,
+//       },
+//       {
+//         unique: true,
+//         name: "unique_student_tuition_application",
+//       }
+//     );
+
+//     console.log("Connected to mentorlagbe database.");
+//     console.log("Users, tuitions and applications collections are ready.");
+//     console.log("Unique application index created successfully.");
 
 //   } catch (error) {
 //     console.error("MongoDB connection error:", error);
@@ -40,7 +71,7 @@
 
 // // Root route
 // app.get("/", (req, res) => {
-//   res.send("MentorLagbe Server is Running!");
+//   res.status(200).send("MentorLagbe Server is Running!");
 // });
 
 // // Get all users
@@ -64,11 +95,14 @@
 //   }
 // });
 
-// // Get all tuition data - ONE API ROUTE
+// // Get all approved and active tuition listings
 // app.get("/api/tuitions", async (req, res) => {
 //   try {
 //     const result = await tuitions
-//       .find({})
+//       .find({
+//         approvalStatus: "approved",
+//         isActive: true,
+//       })
 //       .sort({ createdAt: -1 })
 //       .toArray();
 
@@ -83,21 +117,32 @@
 
 //     res.status(500).json({
 //       success: false,
-//       message: "Failed to fetch tuition data",
+//       message: "Failed to fetch approved tuition data",
 //     });
 //   }
 // });
 
 // // Start server after database connection
 // async function startServer() {
-//   await connectToMongoDB();
+//   try {
+//     await connectToMongoDB();
 
-//   app.listen(port, () => {
-//     console.log(`MentorLagbe server running on port ${port}`);
-//   });
+//     app.listen(port, () => {
+//       console.log(`MentorLagbe server running on port ${port}`);
+//       console.log(`Tuition API: http://localhost:${port}/api/tuitions`);
+//     });
+
+//   } catch (error) {
+//     console.error("Server startup error:", error);
+//     process.exit(1);
+//   }
 // }
 
 // startServer();
+
+
+
+
 
 
 
@@ -156,7 +201,7 @@ async function connectToMongoDB() {
     tuitions = database.collection("tuitions");
     applications = database.collection("applications");
 
-    // Create unique index to prevent duplicate applications
+    // Unique index: one application per student per tuition
     await applications.createIndex(
       {
         tuitionId: 1,
@@ -174,7 +219,7 @@ async function connectToMongoDB() {
 
   } catch (error) {
     console.error("MongoDB connection error:", error);
-    process.exit(1);
+    throw error;
   }
 }
 
@@ -236,13 +281,28 @@ async function startServer() {
   try {
     await connectToMongoDB();
 
-    app.listen(port, () => {
+    const server = app.listen(port, () => {
       console.log(`MentorLagbe server running on port ${port}`);
       console.log(`Tuition API: http://localhost:${port}/api/tuitions`);
     });
 
+    // Graceful shutdown
+    const shutdown = async () => {
+      console.log("Shutting down MentorLagbe server...");
+
+      server.close(async () => {
+        await client.close();
+        console.log("MongoDB connection closed.");
+        process.exit(0);
+      });
+    };
+
+    process.on("SIGINT", shutdown);
+    process.on("SIGTERM", shutdown);
+
   } catch (error) {
     console.error("Server startup error:", error);
+    await client.close().catch(() => {});
     process.exit(1);
   }
 }
