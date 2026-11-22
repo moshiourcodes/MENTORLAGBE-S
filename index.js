@@ -216,19 +216,19 @@ app.get("/api/tuitions", async (req, res) => {
 });
 
 // Start server after database connection
-async function startServer() {
-  try {
-    await connectToMongoDB();
+// async function startServer() {
+//   try {
+//     await connectToMongoDB();
 
-    app.listen(port, () => {
-      console.log(`MentorLagbe server running on port ${port}`);
-      console.log(`Tuition API: http://localhost:${port}/api/tuitions`);
-    });
+//     app.listen(port, () => {
+//       console.log(`MentorLagbe server running on port ${port}`);
+//       console.log(`Tuition API: http://localhost:${port}/api/tuitions`);
+//     });
 
-  } catch (error) {
-    console.error("Server startup error:", error);
-    process.exit(1);
-  }
-}
+//   } catch (error) {
+//     console.error("Server startup error:", error);
+//     process.exit(1);
+//   }
+// }
 
 startServer();
