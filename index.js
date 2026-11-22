@@ -140,6 +140,7 @@ const client = new MongoClient(mongoURI);
 let database;
 let users;
 let tuitions;
+let applications;
 
 // Connect to MongoDB
 async function connectToMongoDB() {
@@ -150,11 +151,26 @@ async function connectToMongoDB() {
 
     database = client.db("mentorlagbe");
 
+    // Collections
     users = database.collection("user");
     tuitions = database.collection("tuitions");
+    applications = database.collection("applications");
+
+    // Create unique index to prevent duplicate applications
+    await applications.createIndex(
+      {
+        tuitionId: 1,
+        studentId: 1,
+      },
+      {
+        unique: true,
+        name: "unique_student_tuition_application",
+      }
+    );
 
     console.log("Connected to mentorlagbe database.");
-    console.log("Users and tuitions collections are ready.");
+    console.log("Users, tuitions and applications collections are ready.");
+    console.log("Unique application index created successfully.");
 
   } catch (error) {
     console.error("MongoDB connection error:", error);
